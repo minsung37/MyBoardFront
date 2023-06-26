@@ -1,15 +1,17 @@
 import { useRef, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import * as StompJs from '@stomp/stompjs';
+import style from "./ChatPage.module.css"
 
 
 function CreateReadChat() {
   let [chatList, setChatList] = useState([]);
+  let [userList, setUserList] = useState([]);
   let [chat, setChat] = useState('');
   let [name, setName] = useState('');
+  let [naming, setNaming] = useState(true);
 
   const { roomId } = useParams();
-  // const apply_id = 1;
   const client = useRef({});
 
   function connect() {
@@ -18,9 +20,37 @@ function CreateReadChat() {
       onConnect: () => {
         console.log('success');
         subscribe();
+        welcome();
       },
     });
     client.current.activate();
+  };
+
+  function sendWelcome(chat) {
+    if (!client.current.connected) return;
+
+    client.current.publish({
+      destination: '/pub/welcome',
+      body: JSON.stringify({
+        channelId: roomId,
+        userId: 1,
+        nickname: name,
+        profileImg: "welcome",
+        chat: "1",
+      }),
+    });
+  };
+
+  function welcome() {
+    console.log("welcome")
+    client.current.subscribe('/sub/welcome/' + roomId, (body) => {
+      console.log("getsub")
+      const json_body = JSON.parse(body.body);
+      const message = json_body;
+      setUserList((_user_list) => [
+        ..._user_list, message.nickname
+      ]);
+    });
   };
 
   function publish(chat) {
@@ -63,22 +93,45 @@ function CreateReadChat() {
     publish(chat);
   };
 
+  function joinChat() {
+    setNaming(false);
+    sendWelcome({
+      channelId: roomId,
+      userId: 1,
+      nickname: name,
+      profileImg: "welcome",
+      chat: chat,
+    })
+  }
+
   function nameChange(event) {
     setName(event.target.value);
   }
   
   useEffect(() => {
     connect();
+
     return () => disconnect();
   }, []);
 
   return (
     <div>
       <h2>{roomId} 번 채팅방</h2>
-      <div>
-        이름설정 : &nbsp;
-        <input type={'text'} onChange={nameChange} value={name} />
-      </div>
+      <hr></hr>
+      참여 유저 : { userList.length } 명
+      <br></br>
+      {userList}
+      <br></br>
+      <hr></hr>
+      {
+        naming ?
+        <div>
+          이름설정 : &nbsp;
+          <input type={'text'} onChange={nameChange} value={name} />
+          <button onClick={() => { joinChat() }}>완료</button>
+        </div>
+        : null
+      }
       내이름 : {name}
       {
         chatList.map((item, index) => {
@@ -86,13 +139,19 @@ function CreateReadChat() {
         })
       }
       <br></br>
-      <form onSubmit={(event) => handleSubmit(event, chat)}>
-        <div>
-          <input type={'text'} name={'chatInput'} onChange={handleChange} value={chat} />
+      {
+        naming ? null:
+        <div className={style.messages}>
+          <form className={style.send} onSubmit={(event) => handleSubmit(event, chat)}>
+            <input className={style.input} placeholder="메시지를 입력하세요" type={'text'} onChange={handleChange} value={chat} />
+            <button className={style.btn} type={'submit'}>
+              <img src="https://fitsta-bucket.s3.ap-northeast-2.amazonaws.com/secondlife/send.png"
+                className={style.sendImg}
+              />
+            </button>
+          </form>
         </div>
-        <br></br>
-        <input type={'submit'} value={'메시지 보내기'} />
-      </form>
+      }
     </div>
   );
 }

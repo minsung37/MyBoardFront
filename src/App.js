@@ -1,15 +1,15 @@
 import logo from './logo.svg';
 import './App.css';
-import CreateReadChat from './pages/CreateReadChat'
+import ChatPage from './pages/ChatPage'
 import { Route, Routes } from 'react-router-dom';
-import Home from './pages/home'
+import Home from './pages/WelcomePage'
 
 function App() {
   return (
     <div className="App">
       <Routes>
         <Route path='/' element={<Home/>}/>
-        <Route path='/chat/:roomId' element={<CreateReadChat />}/>
+        <Route path='/chat/:roomId' element={<ChatPage />}/>
       </Routes>
     </div>
   );
