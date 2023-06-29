@@ -5,28 +5,135 @@ import style from "./ChatPage.module.css"
 
 
 function CreateReadChat() {
+
+  // 바뀌면 렌더링
   let [chatList, setChatList] = useState([]);
   let [userList, setUserList] = useState([]);
   let [chat, setChat] = useState('');
   let [name, setName] = useState('');
   let [naming, setNaming] = useState(true);
 
+  // 파라미터 값 받기
   const { roomId } = useParams();
+  
+  // 값을 변경해도 상태를 변경할 때 처럼 컴포넌트가 다시 랜더링되지 않는다
+  // 컴포넌트가 다시 랜더링될 때도 마찬가지로 이 current 속성의 값이 유실되지 않는다
   const client = useRef({});
 
+  // ws://localhost:8080/ws 이곳과 연결
   function connect() {
     client.current = new StompJs.Client({
-      brokerURL: 'ws://localhost:5000/ws',
+      brokerURL: 'ws://localhost:8080/ws',
       onConnect: () => {
         console.log('success');
         subscribe();
         welcome();
+        bye();
       },
     });
     client.current.activate();
   };
+  
+  // 서버의 /sub/chat/roomId 로 메시지 보내기
+  function publish(chat) {
+    if (!client.current.connected) return;
 
-  function sendWelcome(chat) {
+    client.current.publish({
+      destination: '/pub/chat',
+      body: JSON.stringify({
+        channelId: roomId,
+        userId: 1,
+        nickname: name,
+        profileImg: "",
+        chat: chat,
+      }),
+    });
+
+    setChat('');
+  };
+
+  // 서버가 /sub/chat/roomId 로 보낸 메시지 받기
+  function subscribe() {
+    client.current.subscribe('/sub/chat/' + roomId, (body) => {
+      const json_body = JSON.parse(body.body);
+      const message = json_body;
+      setChatList((_chat_list) => [
+        ..._chat_list, message
+      ]);
+    });
+  };
+
+  // 연결 종료
+  function disconnect() {
+    client.current.deactivate();
+  };
+
+  // 채팅 입력 시 state에 값 설정
+  function handleChange(event) {
+    setChat(event.target.value);
+  };
+
+  // 보내기 버튼 눌렀을 때 publish
+  function handleSubmit(event, chat) {
+    event.preventDefault();
+    publish(chat);
+  };
+
+  // 이름설정
+  function joinChat() {
+    setNaming(false);
+    localStorage.setItem("name", name)
+    sendWelcome({
+      channelId: roomId,
+      userId: 1,
+      nickname: name,
+      profileImg: "welcome",
+      chat: chat,
+    })
+  }
+
+  // 인풋상자랑 바운딩
+  function nameChange(event) {
+    setName(event.target.value);
+  }
+  
+  // mounted
+  useEffect(() => {
+    connect();
+
+    // unmounted
+    return () => {
+      console.log("bye")
+      sendbye();
+      disconnect();
+    }
+  }, []);
+
+  // 아래 함수는 publish, subscribe와 비슷한 과정
+  function sendbye() {
+    if (!client.current.connected) return;
+    console.log("send bye")
+    let name1 = localStorage.getItem("name")
+    client.current.publish({
+      destination: '/pub/bye',
+      body: JSON.stringify({
+        channelId: roomId,
+        nickname: name1,
+      }),
+    });
+  };
+
+  function bye() {
+    console.log("conn bye")
+    client.current.subscribe('/sub/bye/' + roomId, (body) => {
+      const json_body = JSON.parse(body.body);
+      const message = json_body;
+      setUserList(message.participants);
+    });
+  };
+
+
+  function sendWelcome() {
     if (!client.current.connected) return;
 
     client.current.publish({
@@ -47,72 +154,9 @@ function CreateReadChat() {
       console.log("getsub")
       const json_body = JSON.parse(body.body);
       const message = json_body;
-      setUserList((_user_list) => [
-        ..._user_list, message.nickname
-      ]);
+      setUserList(message.participants);
     });
   };
-
-  function publish(chat) {
-    if (!client.current.connected) return;
-
-    client.current.publish({
-      destination: '/pub/chat',
-      body: JSON.stringify({
-        channelId: roomId,
-        userId: 1,
-        nickname: name,
-        profileImg: "",
-        chat: chat,
-      }),
-    });
-
-    setChat('');
-  };
-
-  function subscribe() {
-    client.current.subscribe('/sub/chat/' + roomId, (body) => {
-      const json_body = JSON.parse(body.body);
-      const message = json_body;
-      setChatList((_chat_list) => [
-        ..._chat_list, message
-      ]);
-    });
-  };
-
-  function disconnect() {
-    client.current.deactivate();
-  };
-
-  function handleChange(event) { // 채팅 입력 시 state에 값 설정
-    setChat(event.target.value);
-  };
-
-  function handleSubmit(event, chat) { // 보내기 버튼 눌렀을 때 publish
-    event.preventDefault();
-    publish(chat);
-  };
-
-  function joinChat() {
-    setNaming(false);
-    sendWelcome({
-      channelId: roomId,
-      userId: 1,
-      nickname: name,
-      profileImg: "welcome",
-      chat: chat,
-    })
-  }
-
-  function nameChange(event) {
-    setName(event.target.value);
-  }
-  
-  useEffect(() => {
-    connect();
-
-    return () => disconnect();
-  }, []);
 
   return (
     <div>
