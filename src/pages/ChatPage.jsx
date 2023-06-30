@@ -41,7 +41,7 @@ function CreateReadChat() {
     client.current.publish({
       destination: '/pub/chat',
       body: JSON.stringify({
-        channelId: roomId,
+        roomId: roomId,
         userId: 1,
         nickname: name,
         profileImg: "",
@@ -84,7 +84,7 @@ function CreateReadChat() {
     setNaming(false);
     localStorage.setItem("name", name)
     sendWelcome({
-      channelId: roomId,
+      roomId: roomId,
       userId: 1,
       nickname: name,
       profileImg: "welcome",
@@ -117,7 +117,7 @@ function CreateReadChat() {
     client.current.publish({
       destination: '/pub/bye',
       body: JSON.stringify({
-        channelId: roomId,
+        roomId: roomId,
         nickname: name1,
       }),
     });
@@ -139,7 +139,7 @@ function CreateReadChat() {
     client.current.publish({
       destination: '/pub/welcome',
       body: JSON.stringify({
-        channelId: roomId,
+        roomId: roomId,
         userId: 1,
         nickname: name,
         profileImg: "welcome",
@@ -164,7 +164,17 @@ function CreateReadChat() {
       <hr></hr>
       참여 유저 : { userList.length } 명
       <br></br>
-      {userList}
+      <div className={style.other}>
+        {
+          userList.map((item, index) => {
+            return(
+              <div className={style.name} key={index}>
+                {item}
+              </div>
+            )
+          })
+        }
+      </div>
       <br></br>
       <hr></hr>
       {

@@ -17,10 +17,12 @@
 .other {
   display: flex;
   font-size: small;
+  justify-content: center;
 }
 
 .name {
-  font-size: small;
+  margin-right: 1%;
+  font-size: 15px;
   font-weight: bold;
   justify-content: space-between;
   float: left;

@@ -11,7 +11,9 @@ function Home() {
     setRoomId(event.target.value);
   }
 
+  // 채팅방입장
   function enterRoom() {
+    // 라우터
     navigate("/chat/" + roomId)
   }
 
